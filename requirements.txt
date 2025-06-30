@@ -1,0 +1,6 @@
+numpy
+waitress
+flask
+typing_extensions
+torch
+nemo_toolkit["asr"]

@@ -1,0 +1,331 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Parakeet-tdb 语音转录</title>
+    <style>
+        :root {
+            --primary-color: #007bff;
+            --secondary-color: #6c757d;
+            --background-color: #f8f9fa;
+            --text-color: #333;
+            --card-bg: #ffffff;
+            --border-color: #dee2e6;
+            --success-color: #28a745;
+            --error-color: #dc3545;
+        }
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+            background-color: var(--background-color);
+            color: var(--text-color);
+            margin: 0;
+            padding: 2rem;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+        }
+        .container {
+            width: 100%;
+            max-width: 800px;
+            background-color: var(--card-bg);
+            border-radius: 12px;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+            padding: 2rem 2.5rem;
+            box-sizing: border-box;
+        }
+        header {
+            text-align: center;
+            margin-bottom: 2rem;
+            border-bottom: 1px solid var(--border-color);
+            padding-bottom: 1.5rem;
+        }
+        h1 {
+            color: var(--primary-color);
+            margin: 0;
+        }
+        p {
+            color: var(--secondary-color);
+            margin-top: 0.5rem;
+        }
+        .upload-area {
+            border: 2px dashed var(--primary-color);
+            border-radius: 8px;
+            padding: 2rem;
+            text-align: center;
+            cursor: pointer;
+            transition: background-color 0.2s ease;
+        }
+        .upload-area:hover, .upload-area.dragover {
+            background-color: #e9f5ff;
+        }
+        .upload-area input[type="file"] {
+            display: none;
+        }
+        .upload-icon {
+            font-size: 3rem;
+            color: var(--primary-color);
+        }
+        #fileName {
+            margin-top: 1rem;
+            font-style: italic;
+            color: var(--secondary-color);
+        }
+        .actions {
+            text-align: center;
+            margin-top: 1.5rem;
+        }
+        button {
+            background-color: var(--primary-color);
+            color: white;
+            border: none;
+            padding: 0.8rem 1.6rem;
+            border-radius: 6px;
+            font-size: 1rem;
+            cursor: pointer;
+            transition: background-color 0.2s, transform 0.1s;
+        }
+        button:hover {
+            background-color: #0056b3;
+        }
+        button:active {
+            transform: scale(0.98);
+        }
+        button:disabled {
+            background-color: var(--secondary-color);
+            cursor: not-allowed;
+        }
+        #downloadBtn {
+            background-color: var(--success-color);
+            display: none;
+            margin-left: 1rem;
+        }
+        #downloadBtn:hover {
+            background-color: #218838;
+        }
+        .status {
+            margin-top: 1.5rem;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 10px;
+            font-weight: bold;
+            height: 24px; /* 预留空间防止抖动 */
+        }
+        .status.error { color: var(--error-color); }
+        .status.success { color: var(--success-color); }
+        .spinner {
+            border: 4px solid rgba(0, 0, 0, 0.1);
+            width: 20px;
+            height: 20px;
+            border-radius: 50%;
+            border-left-color: var(--primary-color);
+            animation: spin 1s ease infinite;
+            display: none;
+        }
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+        .result-area {
+            margin-top: 2rem;
+        }
+        textarea {
+            width: 100%;
+            height: 300px;
+            border: 1px solid var(--border-color);
+            border-radius: 6px;
+            padding: 1rem;
+            font-family: "Courier New", Courier, monospace;
+            font-size: 0.9rem;
+            resize: vertical;
+            box-sizing: border-box;
+        }
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <header>
+        <h1>NVIDIA parakeet 语音转录</h1>
+        <p>上传音视频文件，自动生成 SRT 字幕</p>
+    </header>
+
+    <div class="upload-area" id="uploadArea">
+        <input type="file" id="fileInput" accept="audio/*,video/*">
+        <div class="upload-icon">⬆️</div>
+        <div>点击或拖拽文件到此处上传</div>
+        <div id="fileName">未选择文件</div>
+    </div>
+
+    <div class="actions">
+        <button id="uploadBtn" disabled>开始转录</button>
+        <button id="downloadBtn">下载 SRT 文件</button>
+    </div>
+
+    <div class="status" id="status"></div>
+
+    <div class="result-area">
+        <textarea id="resultText" readonly placeholder="转录结果将显示在这里..."></textarea>
+    </div>
+	
+	<div style="text-align:center;magin:15px auto;">
+		<a href="https://github.com" target="_blank">GitHub:jianchang512/parakeet-api</a>
+	</div>
+</div>
+
+<script>
+    document.addEventListener('DOMContentLoaded', () => {
+        const uploadArea = document.getElementById('uploadArea');
+        const fileInput = document.getElementById('fileInput');
+        const fileNameDisplay = document.getElementById('fileName');
+        const uploadBtn = document.getElementById('uploadBtn');
+        const downloadBtn = document.getElementById('downloadBtn');
+        const statusDiv = document.getElementById('status');
+        const resultText = document.getElementById('resultText');
+        
+        let spinner = document.createElement('div');
+        spinner.className = 'spinner';
+        
+        // --- 事件监听 ---
+        uploadArea.addEventListener('click', () => fileInput.click());
+        fileInput.addEventListener('change', handleFileSelect);
+
+        // 拖拽上传
+        ['dragenter', 'dragover', 'dragleave', 'drop'].forEach(eventName => {
+            uploadArea.addEventListener(eventName, preventDefaults, false);
+        });
+        ['dragenter', 'dragover'].forEach(eventName => {
+            uploadArea.addEventListener(eventName, () => uploadArea.classList.add('dragover'), false);
+        });
+        ['dragleave', 'drop'].forEach(eventName => {
+            uploadArea.addEventListener(eventName, () => uploadArea.classList.remove('dragover'), false);
+        });
+        uploadArea.addEventListener('drop', handleDrop, false);
+        
+        uploadBtn.addEventListener('click', handleUpload);
+        downloadBtn.addEventListener('click', handleDownload);
+
+        // --- 函数定义 ---
+        function preventDefaults(e) {
+            e.preventDefault();
+            e.stopPropagation();
+        }
+
+        function handleDrop(e) {
+            const dt = e.dataTransfer;
+            const files = dt.files;
+            if (files.length > 0) {
+                fileInput.files = files;
+                handleFileSelect();
+            }
+        }
+
+        function handleFileSelect() {
+            const file = fileInput.files[0];
+            if (file) {
+                fileNameDisplay.textContent = file.name;
+                uploadBtn.disabled = false;
+            } else {
+                fileNameDisplay.textContent = '未选择文件';
+                uploadBtn.disabled = true;
+            }
+        }
+
+        async function handleUpload() {
+            const file = fileInput.files[0];
+            if (!file) {
+                updateStatus('请先选择一个文件', 'error');
+                return;
+            }
+
+            // UI 重置和加载状态
+            setLoadingState(true);
+            resultText.value = '';
+            
+            const formData = new FormData();
+            formData.append('file', file);
+
+            try {
+                updateStatus('正在上传并处理文件，请稍候...', 'loading');
+                const response = await fetch('/v1/audio/transcriptions', {
+                    method: 'POST',
+                    body: formData,
+                });
+
+                const responseText = await response.text();
+
+                if (response.ok) {
+                    resultText.value = responseText;
+                    updateStatus('转录成功！', 'success');
+                    downloadBtn.style.display = 'inline-block';
+                } else {
+                    // 尝试解析JSON错误
+                    try {
+                        const errorJson = JSON.parse(responseText);
+                        updateStatus(`错误: ${errorJson.error || '未知错误'}`, 'error');
+                    } catch {
+                        updateStatus(`服务器错误: ${response.status} ${response.statusText}`, 'error');
+                    }
+                }
+            } catch (error) {
+                console.error('上传失败:', error);
+                updateStatus('上传失败，请检查网络连接或服务器状态。', 'error');
+            } finally {
+                setLoadingState(false);
+            }
+        }
+
+        function handleDownload() {
+            const srtContent = resultText.value;
+            if (!srtContent) return;
+
+            const blob = new Blob([srtContent], { type: 'application/x-subrip;charset=utf-8' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            
+            const originalFileName = fileInput.files[0].name;
+            const baseName = originalFileName.substring(0, originalFileName.lastIndexOf('.')) || originalFileName;
+            
+            a.href = url;
+            a.download = `${baseName}.srt`;
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
+            URL.revokeObjectURL(url);
+        }
+
+        function setLoadingState(isLoading) {
+            uploadBtn.disabled = isLoading;
+            if (isLoading) {
+                statusDiv.innerHTML = '';
+                statusDiv.appendChild(spinner);
+                spinner.style.display = 'block';
+            } else {
+                spinner.style.display = 'none';
+            }
+        }
+        
+        function updateStatus(message, type = 'info') {
+            statusDiv.innerHTML = ''; // 清空，移除spinner
+             if (type === 'loading') {
+                statusDiv.appendChild(spinner);
+                spinner.style.display = 'block';
+            }
+            let textNode = document.createElement('span');
+            textNode.textContent = message;
+            statusDiv.appendChild(textNode);
+
+            statusDiv.className = 'status';
+            if (type === 'error') {
+                statusDiv.classList.add('error');
+            } else if (type === 'success') {
+                statusDiv.classList.add('success');
+            }
+        }
+    });
+</script>
+
+</body>
+</html>
