@@ -3,4 +3,4 @@ waitress
 flask
 typing_extensions
 torch
-nemo_toolkit["asr"]
+nemo_toolkit[asr]
