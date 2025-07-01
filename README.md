@@ -61,6 +61,8 @@
         pip install torch --index-url https://download.pytorch.org/whl/cu126
         ```
 
+> 如果在 `pip install -r requirements.txt` 中遇到错误无法解决，可参阅该教程: https://pyvideotrans.com/blog/pip-install-sslerror-parseerror
+
 ### 步骤 3: 启动服务
 
 在**已激活虚拟环境**的终端中，运行以下命令：
