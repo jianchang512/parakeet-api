@@ -117,7 +117,7 @@ print(srt_result)
 > 如果传递参数 model="parakeet_srt_words", 将在返回的srt字符串后以`----..----` 连接 字级时间戳,如下 
 >```\n1\n0:00:07,840 --> 0:00:09,920\nThe Miss Pat show was filmed in front of a live stream.\n----..----[{"start": 7.84, "end": 8.08, "word": "The"}, {"start": 8.08, "end": 8.32, "word": "Miss"}, {"start": 8.4, "end": 8.64, "word": "Pat"}, {"start": 8.72, "end": 8.8, "word": "show"}, {"start": 8.96, "end": 9.040000000000001, "word": "was"}, {"start": 9.040000000000001, "end": 9.36, "word": "filmed"}, {"start": 9.36, "end": 9.44, "word": "in"}, {"start": 9.44, "end": 9.52, "word": "front"}, {"start": 9.52, "end": 9.6, "word": "of"}, {"start": 9.6, "end": 9.68, "word": "a"}, {"start": 9.68, "end": 9.84, "word": "live"}, {"start": 9.92, "end": 9.92, "word": "stream."}]
 ```
-
+> 为何使用丑陋的 `----..----`而不是返回json对象？出于兼容之前版本考虑，仍返回字符串。
 
 ### 方法 3: 集成到 pyVideoTrans (推荐)
 
