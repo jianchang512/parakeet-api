@@ -1,4 +1,4 @@
-import os,sys
+import os,sys,json
 import shutil
 import uuid
 import subprocess
@@ -112,6 +112,8 @@ def transcribe_audio():
     if not shutil.which('ffmpeg'):
         return jsonify({"error": "请先安装ffmpeg"}), 400
     if file:
+        model_name = request.form.get('model','')
+        print(f'{model_name=}')
         original_filename = secure_filename(file.filename)
         unique_id = str(uuid.uuid4())
         # 保存原始上传文件
@@ -149,13 +151,20 @@ def transcribe_audio():
 
             if not output or not output[0].timestamp or 'segment' not in output[0].timestamp:
                 return jsonify({"error": "转录失败，模型未返回有效时间戳"}), 500
-
+            
+            
             segment_timestamps = output[0].timestamp['segment']
             print(f"[{unique_id}] 转录完成。")
             
             # --- 将结果转换为 SRT 格式 ---
             srt_result = segments_to_srt(segment_timestamps)
-            
+            if model_name=='parakeet_srt_words':
+                # 返回 srt字符串 ----..---- 字时间戳json, 用于LLM再次断句
+                words = output[0].timestamp['word']
+                json_str=[]
+                for it in words:
+                    json_str.append({"start":it['start'],"end":it['end'],"word":it['word']})
+                srt_result+="----..----"+json.dumps(json_str)
             # 返回 SRT 格式的响应，MIME 类型为 text/plain 方便前端处理
             return Response(srt_result, mimetype='text/plain')
 
