@@ -128,6 +128,8 @@ def transcribe_audio():
         return jsonify({"error": "未选择文件"}), 400
     if not shutil.which('ffmpeg'):
         return jsonify({"error": "FFmpeg 未安装或未在系统 PATH 中"}), 500
+    if not shutil.which('ffprobe'):
+        return jsonify({"error": "ffprobe 未安装或未在系统 PATH 中"}), 500
 
     model_name = request.form.get('model', '')
     print(f"接收到请求，指定模型参数: '{model_name}'")
