@@ -24,7 +24,7 @@
 本项目使用 `ffmpeg` 进行音视频格式预处理。
 
 *   **Windows (推荐)**:
-    1.  从 [FFmpeg github 仓库下载](https://github.com/BtbN/FFmpeg-Builds/releases/download/latest/ffmpeg-master-latest-win64-gpl-shared.zip)  解压后得到`ffmpeg.exe`。
+    1.  从 [FFmpeg gyan下载](https://www.gyan.dev/ffmpeg/builds/ffmpeg-release-full.7z)  解压后得到`ffmpeg.exe`。
     2.  将下载的 **`ffmpeg.exe 和 ffprobe.exe` 文件直接放置在本项目根目录** (与 `app.py` 文件在同一级)，程序会自动检测并使用它，无需配置环境变量。
 
 *   **macOS (使用 Homebrew)**:
