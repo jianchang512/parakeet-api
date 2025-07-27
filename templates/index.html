@@ -28,7 +28,7 @@
         }
         .container {
             width: 100%;
-            max-width: 800px;
+            max-width: 1000px;
             background-color: var(--card-bg);
             border-radius: 12px;
             box-shadow: 0 4px 12px rgba(0,0,0,0.1);
@@ -143,6 +143,7 @@
             box-sizing: border-box;
         }
 		p.tips{font-size:12px;color:#777}
+		#wrap_upload{display:flex;align-items:center}
     </style>
 </head>
 <body>
@@ -151,17 +152,21 @@
     <header>
         <h1>NVIDIA parakeet 语音转录</h1>
         <p>上传音视频文件，自动生成 SRT 字幕</p>
-		<p>parakeet模型目前仅支持英语</p>
+		<p>parakeet模型目前支持英语、日语</p>
     </header>
 
-    <div class="upload-area" id="uploadArea">
-        <input type="file" id="fileInput" accept="audio/*,video/*">
-        <div class="upload-icon">⬆️</div>
-        <div>点击或拖拽文件到此处上传</div>
-        <div id="fileName">未选择文件</div>
-    </div>
+		<div style="flex-grow:1" class="upload-area" id="uploadArea">
+			<input type="file" id="fileInput" accept="audio/*,video/*">
+			<div class="upload-icon">⬆️</div>
+			<div>点击或拖拽文件到此处上传</div>
+			<div id="fileName">未选择文件</div>
+		</div>
 
     <div class="actions">
+		<select id="prompt">
+				<option value="en">英语</option>
+				<option value="ja">日语</option>
+			</select>
         <button id="uploadBtn" disabled>开始转录</button>
         <button id="downloadBtn">下载 SRT 文件</button>
     </div>
@@ -248,6 +253,7 @@
             
             const formData = new FormData();
             formData.append('file', file);
+            formData.append('prompt', document.getElementById('prompt').value);
 
             try {
                 updateStatus('正在上传并处理文件，请稍候...', 'loading');

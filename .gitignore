@@ -1,4 +1,6 @@
 models/hub
 temp_uploads/*
 venv
+runtime
 *.bat
+*.7z

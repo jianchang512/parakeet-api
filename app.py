@@ -5,7 +5,8 @@ threads = 4
 CHUNK_MINITE=10
 
 
-import os,sys,json,math
+import os,sys,json,math,re,threading
+os.environ['HF_ENDPOINT']='https://hf-mirror.com'
 import shutil
 import uuid
 import subprocess
@@ -16,11 +17,12 @@ from flask import Flask, request, jsonify, render_template, Response
 from waitress import serve
 from pathlib import Path
 ROOT_DIR=Path(os.getcwd()).as_posix()
-os.environ['HF_ENDPOINT']='https://hf-mirror.com'
 os.environ['HF_HOME'] = ROOT_DIR + "/models"
+os.environ['HF_HUB_CACHE'] = ROOT_DIR + "/models"
 os.environ['HF_HUB_DISABLE_SYMLINKS_WARNING'] = 'true'
 if sys.platform == 'win32':
     os.environ['PATH'] = ROOT_DIR + f';{ROOT_DIR}/ffmpeg;' + os.environ['PATH']
+import nemo.collections.asr as nemo_asr
 
 
 # --- 全局设置与模型预加载 ---
@@ -29,21 +31,24 @@ if sys.platform == 'win32':
 if not os.path.exists('temp_uploads'):
     os.makedirs('temp_uploads')
 
-print("="*50)
-print("正在加载 NVIDIA NeMo ASR 模型...若不存在将下载")
-print("模型名称: nvidia/parakeet-tdt-0.6b-v2")
-print("这可能需要几分钟时间，请耐心等待...")
-print("加载完毕后将启动 API 服务...")
 
 try:
     # 这一步会下载并加载模型，需要较长时间和网络连接
-    import nemo.collections.asr as nemo_asr
-    asr_model = nemo_asr.models.ASRModel.from_pretrained(model_name="nvidia/parakeet-tdt-0.6b-v2")
-    print("✅ NeMo ASR 模型加载成功！")
+    print("\n开始下载模型 parakeet-tdt-0.6b-v2")
+    from huggingface_hub import snapshot_download
+
+    snapshot_download(
+                repo_id="nvidia/parakeet-tdt-0.6b-v2"
+                )
+    print("\n开始下载模型 parakeet-tdt_ctc-0.6b-ja")
+    snapshot_download(
+                repo_id="nvidia/parakeet-tdt_ctc-0.6b-ja"
+                )
+
 except Exception as e:
     print(f"❌ 模型加载失败: {e}")
     print("请确保已正确安装 'nemo_toolkit[asr]' 及其依赖，并有可用的网络连接。")
-    exit(1)
+    sys.exit()
 
 print("="*50)
 
@@ -130,9 +135,17 @@ def transcribe_audio():
         return jsonify({"error": "FFmpeg 未安装或未在系统 PATH 中"}), 500
     if not shutil.which('ffprobe'):
         return jsonify({"error": "ffprobe 未安装或未在系统 PATH 中"}), 500
+    # 用 model 参数传递特殊要求，例如 ----*---- 分隔字符串和json
+    return_type = request.form.get('model', '')
+    # prompt 用于获取语言
+    language = request.form.get('prompt', 'en')
+    model_list={
+        "en":"parakeet-tdt-0.6b-v2",
+        "ja":"parakeet-tdt_ctc-0.6b-ja"
+    }
+    if language not in model_list:
+        return jsonify({"error": f"不支持该语言:{language}"}), 500
 
-    model_name = request.form.get('model', '')
-    print(f"接收到请求，指定模型参数: '{model_name}'")
 
     original_filename = secure_filename(file.filename)
     unique_id = str(uuid.uuid4())
@@ -163,7 +176,8 @@ def transcribe_audio():
         total_duration = get_audio_duration(target_wav_path)
         if total_duration == 0:
             return jsonify({"error": "无法处理时长为0的音频"}), 400
-
+        print(f'加载模型：{model_list[language]}')
+        asr_model = nemo_asr.models.ASRModel.from_pretrained(model_name=f"nvidia/{model_list[language]}")
         num_chunks = math.ceil(total_duration / CHUNK_DURATION_SECONDS)
         chunk_paths = []
         print(f"[{unique_id}] 文件总时长: {total_duration:.2f}s. 将切分为 {num_chunks} 个片段。")
@@ -226,9 +240,9 @@ def transcribe_audio():
 
         srt_result = segments_to_srt(all_segments)
         
-        if model_name == 'parakeet_srt_words':
+        if return_type == 'parakeet_srt_words':
             json_str_list = [
-                {"start": it['start'], "end": it['end'], "word": it['word']} 
+                {"start": it['start'], "end": it['end'], "word":it['word']} 
                 for it in all_words
             ]
             srt_result += "----..----" + json.dumps(json_str_list)
@@ -248,11 +262,17 @@ def transcribe_audio():
                 os.remove(f_path)
         print(f"[{unique_id}] 临时文件已清理。")
 
+def openweb():
+    import webbrowser,time
+    time.sleep(5)
+    webbrowser.open_new_tab(f'http://127.0.0.1:{port}')
+
 # --- Waitress 服务器启动 ---
 if __name__ == '__main__':
 
-    print(f"🚀 服务器启动中...")
+    print(f"服务器启动中...")
     print(f"访问前端页面: http://127.0.0.1:{port}")
     print(f"API 端点: POST http://{host}:{port}/v1/audio/transcriptions")
     print(f"服务将使用 {threads} 个线程运行。")
+    threading.Thread(target=openweb).start()
     serve(app, host=host, port=port, threads=threads)
