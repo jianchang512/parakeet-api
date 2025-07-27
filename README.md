@@ -15,6 +15,13 @@
 
 本项目支持 Windows, macOS 和 Linux。请按照以下步骤进行安装和配置。
 
+> **Win 整合包下载地址1：**   [从百度网盘下载](https://pan.baidu.com/s/1SzNAYSttjQ_RXXPpF20bxA?pwd=zm1t)
+>
+> **Win 整合包下载地址2：**  [从HuggingFace.co下载](https://huggingface.co/mortimerme/repocollect/resolve/main/parakeet-win-0707.7z?download=true)
+
+
+## 源码安装
+
 ### 步骤 0: 配置 python3.10 环境
 
 如果你本机无python3，请照此教程安装:  [https://pvt9.com/_posts/pythoninstall](https://pvt9.com/_posts/pythoninstall)
