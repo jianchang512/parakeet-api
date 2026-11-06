@@ -8,4 +8,5 @@ pydub
 ten_vad
 scipy
 datasets
+pytorch-lightning==2.2.5
 nemo_toolkit[asr]

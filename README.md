@@ -21,9 +21,9 @@
 
 本项目支持 Windows, macOS 和 Linux。请按照以下步骤进行安装和配置。
 
-> **Win 整合包下载地址1：**   [从百度网盘下载](https://pan.baidu.com/s/1SzNAYSttjQ_RXXPpF20bxA?pwd=zm1t)
+> **Win 整合包下载地址1：**   [从百度网盘下载](https://pan.baidu.com/s/14_zgrTjzB5fjI2PiOPp5Kg?pwd=1234)
 >
-> **Win 整合包下载地址2：**  [从HuggingFace.co下载](https://huggingface.co/mortimerme/repocollect/resolve/main/parakeet-win-0707.7z?download=true)
+> **Win 整合包下载地址2：**  [从HuggingFace.co下载](https://huggingface.co/mortimerme/repocollect/resolve/main/parakeet-api-20261106.7z?download=true)
 
 
 ## 源码安装
@@ -71,7 +71,7 @@
         b. 卸载可能存在的旧版 PyTorch: `pip uninstall -y torch`
         c. 安装与您的 CUDA 版本匹配的 PyTorch (以 CUDA 12.6 为例):
         ```bash
-        pip install torch --index-url https://download.pytorch.org/whl/cu126
+        pip install torch==2.7.0 --index-url https://download.pytorch.org/whl/cu126
         ```
 
 > 如果在 `pip install -r requirements.txt` 中遇到错误无法解决，可参阅该教程: https://pyvideotrans.com/blog/pip-install-sslerror-parseerror

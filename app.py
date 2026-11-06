@@ -2,6 +2,11 @@ host = '127.0.0.1'
 port = 5092
 threads = 4
 MIN_DURATION=5#小于等于5s的输入音视频，将强制仅仅返回一条纯文本
+import signal
+
+# Windows 兼容补丁：解决 NeMo 缺少 SIGKILL 的问题
+if not hasattr(signal, "SIGKILL"):
+    signal.SIGKILL = signal.SIGTERM
 
 import os,sys,json,math,re,threading
 
@@ -399,7 +404,8 @@ def transcribe_audio():
         for i, chunk_path in enumerate(chunk_paths):            
             # 对当前切片进行转录
             output = asr_model.transcribe([chunk_path['file']])
-            chunk_path['text']=output[0].text
+            print(f'{output=}')
+            chunk_path['text']=output[0].text if hasattr(output[0],'text') else output[0][0]
         try:
             if torch.cuda.is_available():
                 torch.cuda.empty_cache()
